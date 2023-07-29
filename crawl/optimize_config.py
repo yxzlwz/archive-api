@@ -4,5 +4,11 @@ optimize_config = {
             'action': 'click',
             'element': 'div.Modal.Modal--default.signFlowModal > button',
         }
+    },
+    'zhuanlan.zhihu.com': {
+        r'.*': {
+            'action': 'click',
+            'element': 'div.Modal.Modal--default.signFlowModal > button',
+        }
     }
 }

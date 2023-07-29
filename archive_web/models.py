@@ -25,6 +25,4 @@ class CrawlTask(models.Model):
     crawled_at = models.DateTimeField(blank=True, null=True)
 
     config = models.JSONField(default=dict)
-
-    engine = models.CharField(max_length=31, blank=True, null=True)
-    proxy = models.CharField(max_length=15, blank=True, null=True)
+    detail = models.JSONField(default=dict)

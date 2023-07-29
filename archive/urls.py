@@ -22,6 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('create/', archive_web.views.create),
     path('get/', archive_web.views.get),
-    # path('get_image/', archive_web.views.get_image),
-    # path('get_pdf/', archive_web.views.get_pdf),
+    path('search/', archive_web.views.search),
 ]

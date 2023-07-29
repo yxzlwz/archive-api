@@ -24,9 +24,10 @@ class SeleniumChrome:
             '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
         )
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        # options.add_argument('--disable-blink-features=AutomationControlled')
-        # options.add_experimental_option('excludeSwitches', ['enable-outomation'])
-        # options.add_experimental_option('useAutomationExtension', False)
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_experimental_option('excludeSwitches',
+                                        ['enable-outomation'])
+        options.add_experimental_option('useAutomationExtension', False)
         driver = webdriver.Chrome(options=options)
         driver.set_window_size(WIDTH, HEIGHT)
         driver.implicitly_wait(10)
@@ -45,8 +46,10 @@ class SeleniumChrome:
             'title': title,
             'images': images,
             'pdfs': pdfs,
+        }, {
             'engine': 'selenium_chrome',
             'proxy': None,
+            'genuine_url': self.driver.current_url,
         }
 
     def lazy_load(self):
