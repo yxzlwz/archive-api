@@ -12,7 +12,7 @@ from .serializers import PageSerializer, BriefPageSerializer
 
 
 class PageViewSet(ReadOnlyModelViewSet):
-    queryset = Page.objects.all()
+    queryset = Page.objects.exclude(crawl_task__crawled_at=None)
     serializer_class = PageSerializer
     permission_classes = []
     filter_backends = [DjangoFilterBackend, SearchFilter]
