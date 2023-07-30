@@ -18,7 +18,7 @@ class SeleniumChrome:
     def __init__(self):
         options = Options()
         options.add_argument('--no-sandbox')
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument(
             '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
@@ -75,17 +75,18 @@ class SeleniumChrome:
                     by=By.CSS_SELECTOR,
                     value=config['element'],
                 ).click()
-                print('click')
+            elif config['action'] == 'wait':
+                time.sleep(config['seconds'])
 
     def get_title(self):
-        title = self.driver.title
-        if not title:
-            og_title = self.driver.find_element(by=By.CSS_SELECTOR,
-                                                value='[property="og:title"]')
-            title = og_title.get_attribute('content')
-        return title
+        return self.driver.title or self.driver.current_url
 
     def save_as_images(self, filename):
+        _height = self.driver.execute_script(
+            'return document.body.scrollHeight')
+        print(_height)
+        if _height == 0:
+            return []
         height = self.driver.execute_script(
             'return document.body.parentNode.scrollHeight')
         self.driver.set_window_size(WIDTH, max(height, HEIGHT))

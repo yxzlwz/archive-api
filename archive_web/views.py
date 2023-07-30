@@ -1,9 +1,11 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.viewsets import ReadOnlyModelViewSet, mixins
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from crawl.tasks import crawl
 
@@ -34,7 +36,7 @@ class PageViewSet(ReadOnlyModelViewSet):
         elif request.GET.get('title'):
             title = request.GET.get('title')
             queryset = queryset.filter(title__contains=title)
-        queryset = queryset.order_by('id')
+        queryset = queryset.order_by('-id')
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -48,11 +50,16 @@ class PageViewSet(ReadOnlyModelViewSet):
         data = request.data
         print(data)
         url = data.pop('url')
-        if Page.objects.filter(url=url, crawl_task__crawled_at=None).exists():
-            return Response({
-                'status': 'error',
-                'message': 'Same url crawling...'
-            })
+        _page = Page.objects.filter(url=url, crawl_task__crawled_at=None)
+        if _page.exists():
+            _page = _page.first()
+            if _page.created_at + timedelta(minutes=1) < timezone.now():
+                _page.delete()
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Same url crawling...'
+                })
         page = Page.objects.create(url=url)
         crawl_task = CrawlTask.objects.create(page=page, config=data)
         crawl.delay(crawl_task.id, url, data)
@@ -63,4 +70,4 @@ class PageViewSet(ReadOnlyModelViewSet):
         page = self.get_object()
         if page.crawl_task.crawled_at:
             return Response({'status': 'success'})
-        return Response({'status': 'error'})
+        return Response({})
