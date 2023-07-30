@@ -1,55 +1,66 @@
-import base64
-import json
-from django.shortcuts import HttpResponse, HttpResponseRedirect
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status
+from rest_framework.filters import SearchFilter
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.viewsets import ReadOnlyModelViewSet, mixins
+
 from crawl.tasks import crawl
-from .models import Page, CrawlTask
+
+from .models import CrawlTask, Page
+from .serializers import PageSerializer, BriefPageSerializer
 
 
-def JsonResponse(data):
-    return HttpResponse(json.dumps(data), content_type='application/json')
+class PageViewSet(ReadOnlyModelViewSet):
+    queryset = Page.objects.all()
+    serializer_class = PageSerializer
+    permission_classes = []
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    search_fields = ['url', 'title']
+    filterset_fields = ['url', 'title']
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BriefPageSerializer
+        return PageSerializer
 
-def create(request):
-    data = json.loads(request.body)
-    print(data)
-    url = data.pop('url')
-    if Page.objects.filter(url=url, crawl_task__crawled_at=None).exists():
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Same url crawling...'
-        })
-    page = Page.objects.create(url=url)
-    crawl_task = CrawlTask.objects.create(page=page, config=data)
-    crawl.delay(crawl_task.id, url, data)
-    return JsonResponse({'status': 'success', 'id': page.id})
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
 
+        if request.GET.get('url'):
+            url = request.GET.get('url')
+            url = url.split('?')[0]
+            queryset = queryset.filter(url__startswith=url)
+        elif request.GET.get('title'):
+            title = request.GET.get('title')
+            queryset = queryset.filter(title__contains=title)
+        queryset = queryset.order_by('id')
 
-def get(request):
-    url = request.GET.get('url')
-    page = Page.objects.filter(url=url).order_by('-id')
-    if not page:
-        return JsonResponse({'status': 'error', 'message': 'Not Found'})
-    page = page.first()
-    if not page.crawl_task.crawled_at:
-        return JsonResponse({'status': 'error', 'message': 'Crawling...'})
-    return JsonResponse({
-        'status': 'success',
-        'id': page.id,
-        'url': page.url,
-        'title': page.title,
-        'images': page.images,
-        'pdfs': page.pdfs,
-    })
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
-def search(request):
-    key = request.GET.get('key')
-    by_url = Page.objects.filter(url__startswith=key)[:10]
-    by_title = Page.objects.filter(title__contains=key)[:10]
-    by_url = [{'id': i.id, 'title': i.title, 'url': i.url} for i in by_url]
-    by_title = [{'id': i.id, 'title': i.title, 'url': i.url} for i in by_title]
-    return JsonResponse({
-        'status': 'success',
-        'by_url': by_url,
-        'by_title': by_title,
-    })
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        print(data)
+        url = data.pop('url')
+        if Page.objects.filter(url=url, crawl_task__crawled_at=None).exists():
+            return Response({
+                'status': 'error',
+                'message': 'Same url crawling...'
+            })
+        page = Page.objects.create(url=url)
+        crawl_task = CrawlTask.objects.create(page=page, config=data)
+        crawl.delay(crawl_task.id, url, data)
+        return Response({'status': 'success', 'id': page.id})
+
+    @action(detail=True, methods=['get'], url_path='check')
+    def check(self, request, *args, **kwargs):
+        page = self.get_object()
+        if page.crawl_task.crawled_at:
+            return Response({'status': 'success'})
+        return Response({'status': 'error'})
