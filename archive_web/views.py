@@ -48,7 +48,6 @@ class PageViewSet(ReadOnlyModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        print(data)
         url = data.pop('url')
         _page = Page.objects.filter(url=url, crawl_task__crawled_at=None)
         if _page.exists():

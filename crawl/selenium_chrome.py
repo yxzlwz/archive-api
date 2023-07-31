@@ -86,7 +86,6 @@ class SeleniumChrome:
     def save_as_images(self, filename):
         _height = self.driver.execute_script(
             'return document.body.scrollHeight')
-        print(_height)
         if _height == 0:
             return []
         height = self.driver.execute_script(
