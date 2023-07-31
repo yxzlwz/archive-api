@@ -34,6 +34,7 @@ class SeleniumChrome:
         self.driver = driver
 
     def archive(self, url, filename, config):
+        start_time = time.time()
         self.driver.get(url)
         if config['lazyload']:
             self.lazy_load()
@@ -50,6 +51,7 @@ class SeleniumChrome:
             'engine': 'selenium_chrome',
             'proxy': None,
             'genuine_url': self.driver.current_url,
+            'time': round(time.time() - start_time, 2),
         }
 
     def lazy_load(self):
